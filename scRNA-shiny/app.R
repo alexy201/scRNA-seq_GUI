@@ -1,5 +1,4 @@
 library(shiny)
-library(pheatmap)
 library(shinyEventLogger)
 library(Seurat)
 library(ggplot2)
@@ -181,10 +180,6 @@ ui <- navbarPage(theme = shinytheme("flatly"), title = tags$b("scRNA-seq Viz"),
                          condition = "input.plot_type2 != 4 && input.plot_type2 != 5",
                          textInput("geneName", label = "Gene Name: ", value = "POSTN"),
                        ),
-                       conditionalPanel(
-                         condition = "input.plot_type2 == 5",
-                         checkboxInput("make_log2FC", "Plot log2FC values", value = FALSE),
-                       ),
                        br(),
                        h3(tags$b("Cell Type/Treatment Selection: ")),
                        br(),
@@ -215,7 +210,7 @@ ui <- navbarPage(theme = shinytheme("flatly"), title = tags$b("scRNA-seq Viz"),
                            checkboxInput("Sub2", "Donor 2", value = FALSE),
                            checkboxInput("Sub3", "Donor 3", value = FALSE),
                            checkboxInput("Sub6", "Donor 4", value = FALSE),
-                         ),
+                         )
                        ),
                        conditionalPanel(
                          condition = "input.plot_type2 != 4 && input.plot_type2 != 5",
@@ -446,7 +441,6 @@ server <- function(input, output) {
     # data is what reduction you are using
     gene <- strsplit(isolate(input$geneNameSpecial2), ", ")
     types <- c(); treats <- c()
-    flag <- isolate(input$make_log2FC)
     if (isolate(input$Basal)){types <- append(types, "Basal")}
     if (isolate(input$Ciliated)){types <- append(types, "Ciliated")}
     if (isolate(input$Intermediate)){types <- append(types, "Intermediate")}
@@ -461,64 +455,32 @@ server <- function(input, output) {
     validate(
       need((length(types) != 0 || length(treats) != 0), "Must select a treatment or cell-type")
     )
-    validate(
-      need(!(flag && (length(treats) != 1 || length(types) == 0)), "Must select a one treatment AND cell-type combination for log2FC analysis")
-    )
-    log_event(flag)
-    if (flag){
-      log_event("log2FC: YES!")
-      run <- 0;
-      mat <- matrix(1:(length(gene[[1]]) * length(types)), nrow = length(gene[[1]]), ncol = length(types))
-      for (g in c(1: length(gene[[1]]))){
-        for (type in types){
-          treatment_name <- paste(paste(type, treats[1], sep="_"), paste(type, "UT", sep="_"), sep=".vs.")
-          val <- pairwise[[treatment_name]]
-          ind <- -1
-          for (i in c(1: nrow(val))){
-            if (val$Gene[i] == gene[[1]][g]){
-              ind <- i
-              break;
-            }
-          }
-          if (ind == -1){
-            mat[g, run + 1] <- 0
-          }else {
-            mat[g, run + 1] <- val$log2FC[ind]
-          }
-          run <- (run + 1) %% length(types)
-        }
-      }
-      rownames(mat) = gene[[1]]
-      colnames(mat) = types
-      breaksList = seq(-1, 2, by = 0.01)
-      pheatmap(mat, breaks = breaksList, color = colorRampPalette(c("blue", "white", "red"))(length(breaksList)), cluster_rows = FALSE, cluster_cols = FALSE)
+    if (length(types) == 0){
+      Idents(scaled)<-scaled@meta.data$Treatment
+      ThreeCellTypes <- subset(scaled, idents = treats)
+      levels(ThreeCellTypes) <- sort(levels(ThreeCellTypes))
+      cluster.averages <- AverageExpression(ThreeCellTypes, return.seurat = TRUE)
+      DoHeatmap(cluster.averages, features = gene[[1]], draw.lines = FALSE) + scale_fill_gradientn(colors = c("blue", "white", "red"))
+    }else if (length(treats) == 0){
+      Idents(scaled)<-scaled@meta.data$cellType
+      ThreeCellTypes <- subset(scaled, idents = types)
+      levels(ThreeCellTypes) <- sort(levels(ThreeCellTypes))
+      cluster.averages <- AverageExpression(ThreeCellTypes, return.seurat = TRUE)
+      DoHeatmap(cluster.averages, features = gene[[1]], draw.lines = FALSE) + scale_fill_gradientn(colors = c("blue", "white", "red"))
     }else {
-      if (length(types) == 0){
-        Idents(scaled)<-scaled@meta.data$Treatment
-        ThreeCellTypes <- subset(scaled, idents = treats)
-        levels(ThreeCellTypes) <- sort(levels(ThreeCellTypes))
-        cluster.averages <- AverageExpression(ThreeCellTypes, return.seurat = TRUE)
-        DoHeatmap(cluster.averages, features = gene[[1]], draw.lines = FALSE) + scale_fill_gradientn(colors = c("blue", "white", "red"))
-      }else if (length(treats) == 0){
-        Idents(scaled)<-scaled@meta.data$cellType
-        ThreeCellTypes <- subset(scaled, idents = types)
-        levels(ThreeCellTypes) <- sort(levels(ThreeCellTypes))
-        cluster.averages <- AverageExpression(ThreeCellTypes, return.seurat = TRUE)
-        DoHeatmap(cluster.averages, features = gene[[1]], draw.lines = FALSE) + scale_fill_gradientn(colors = c("blue", "white", "red"))
-      }else {
-        combo <- c()
-        for (type in types){
-          for (treat in treats){
-            combo <- append(combo, paste(type, treat, sep="_"))
-          }
+      combo <- c()
+      for (type in types){
+        for (treat in treats){
+          combo <- append(combo, paste(type, treat, sep="_"))
         }
-        Idents(scaled)<-scaled@meta.data$cellType_Treatment
-        ThreeCellTypes <- subset(scaled, idents = combo)
-        levels(ThreeCellTypes) <- sort(levels(ThreeCellTypes))
-        cluster.averages <- AverageExpression(ThreeCellTypes, return.seurat = TRUE)
-        DoHeatmap(cluster.averages, features = gene[[1]], draw.lines = FALSE) + scale_fill_gradientn(colors = c("blue", "white", "red"))
       }
+      Idents(scaled)<-scaled@meta.data$cellType_Treatment
+      ThreeCellTypes <- subset(scaled, idents = combo)
+      levels(ThreeCellTypes) <- sort(levels(ThreeCellTypes))
+      cluster.averages <- AverageExpression(ThreeCellTypes, return.seurat = TRUE)
+      DoHeatmap(cluster.averages, features = gene[[1]], draw.lines = FALSE) + scale_fill_gradientn(colors = c("blue", "white", "red"))
     }
+    
   }, height = 1000, width = 900)
   
   output$DimPlot <- renderPlot({
