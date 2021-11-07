@@ -4,10 +4,7 @@ INTRODUCTION
 An R Shiny App for visualizing scRNA sequencing data. Find and visualize differentially expressed or user-inputted genes under certain treatments.
 
 Files
- * pairWiseTests.rds: R object with the coefficient and p values of tests on genes that are significant after cytokine treatment (not publicly available)
- * treatments.so.rds: R Seurat object with QC, Normalization, and PCA performed on it. (not publicly available) Cells have been clustered and non-linear dimension reductions (UMAP/tSNE) have been run. See https://github.com/satijalab/seurat for more info about Seurat.
- * my_data.rds: Scaled R Seurat object for HeatMap visualization. (not publicly available)
- * MarKDOWn.pdf: Image of documentation containing detailed instructions on how to use the app (can also be found on the "Documentation" tab of the application)
+ * Documentation.pdf: Image of documentation containing detailed instructions on how to use the app (can also be found on the "Documentation" tab of the application)
  * app.R: R Shiny application source code.
 
 REQUIREMENTS
@@ -19,7 +16,7 @@ This application requires:
  * RStudio (https://rstudio.com/products/rstudio/download/)
    - RStudio is recommended, but you can also launch the Shiny app in Terminal
  * The following R packages (see installation for more details):
-   - shiny, shinyEventLogger, Seurat, ggplot2, dplyr, grid, shinycssloaders, shinythemes, DT 
+   - shiny, shinyEventLogger, Seurat, ggplot2, dplyr, grid, shinycssloaders, shinythemes, DT, rhandsontable, shinyjs, SeuratWrappers, monocle3, leidenbase, shinyalert, MAST, DESeq2, shinydashboard
 
 Recommended general system requirements/specs:
  * OS: Windows 10 (64-bit) or Mac OS X 10.13+
@@ -42,7 +39,13 @@ INSTALLATION (not publicly available yet)
    - grid: run "install.packages("grid")"
    - shinycssloaders: run "install.packages("shinycssloaders")"
    - shinythemes: run "install.packages("shinythemes")"
+   - shinydashboard: run "install.packages("shinydashboard")"
+   - shinyalert: run "install.packages("shinyalert")"
    - DT: run "install.packages("DT")"
+   - rhandsontable: run "install.packages("rhandsontable")"
+   - shinyjs: run "remotes::install_github('satijalab/seurat-wrappers')"
+   - MAST: run "if (!requireNamespace("BiocManager", quietly = TRUE))install.packages("BiocManager"); BiocManager::install("MAST")"
+   - DESeq2: run "if (!requireNamespace("BiocManager", quietly = TRUE))install.packages("BiocManager"); BiocManager::install("DESeq2")"
  * Navigate to the "app.R" file in the "scRNA_shiny" sub-folder. Open the file. (In terminal, navigate to the Shiny App box folder)
  * In the top right corner of the code screen, click the "Run App" button. Alternatively, you can also run "runApp("scRNA_shiny/")" in the console or in terminal
  * An event in the console should say, "Hello World!" after the logging statements. This indicates that the app has finished launching successfully. The app should open in a new window.
